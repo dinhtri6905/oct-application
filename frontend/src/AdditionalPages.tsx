@@ -1,21 +1,23 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, Database, Eye, EyeOff,
-  Info, ListFilter, LockKeyhole, Mail, Settings2, Trash2, UserRound,
+  ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff,
+  LockKeyhole, Mail, Moon, Sun, UserRound,
 } from 'lucide-react'
-import type { PageSize } from './preferences'
+import type { Theme } from './theme'
+import { api } from './api'
+import type { Account } from './api'
 
-export function AuthPage({ mode }: { mode: 'signin' | 'signup' }) {
+export function AuthPage({ mode, theme, onThemeToggle, onAuthenticated }: { mode: 'signin' | 'signup'; theme: Theme; onThemeToggle: () => void; onAuthenticated: (account: Account) => void }) {
   const isSignUp = mode === 'signup'
+  const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
-  const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setMessage('')
     setError('')
     const form = event.currentTarget
     const values = new FormData(form)
@@ -23,10 +25,18 @@ export function AuthPage({ mode }: { mode: 'signin' | 'signup' }) {
       setError('Mật khẩu xác nhận chưa khớp. Hãy kiểm tra lại.')
       return
     }
-    form.reset()
-    setMessage(isSignUp
-      ? 'Giao diện đăng ký đã sẵn sàng. Tài khoản chưa được tạo vì hệ thống xác thực chưa kết nối.'
-      : 'Giao diện đăng nhập đã sẵn sàng. Phiên đăng nhập chưa được tạo vì hệ thống xác thực chưa kết nối.')
+    setBusy(true)
+    try {
+      const email = String(values.get('email') ?? '')
+      const password = String(values.get('password') ?? '')
+      const account = isSignUp
+        ? await api.register(String(values.get('fullName') ?? ''), email, password)
+        : await api.login(email, password)
+      onAuthenticated(account)
+      navigate('/', { replace: true })
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Không thể hoàn tất yêu cầu. Vui lòng thử lại.')
+    } finally { setBusy(false) }
   }
 
   return (
@@ -50,74 +60,24 @@ export function AuthPage({ mode }: { mode: 'signin' | 'signup' }) {
       </section>
 
       <section className="auth-panel">
-        <div className="auth-panel-top"><Link to="/" className="auth-back"><ArrowLeft size={17} /> Về ứng dụng</Link><span className="auth-panel-caption">OCT VISION AI</span></div>
+        <div className="auth-panel-top"><Link to={isSignUp ? '/signin' : '/signup'} className="auth-back"><ArrowLeft size={17} /> {isSignUp ? 'Đăng nhập' : 'Tạo tài khoản'}</Link><div className="auth-panel-top-right"><button className="theme-toggle" aria-label={theme === 'light' ? 'Chuyển sang giao diện tối' : 'Chuyển sang giao diện sáng'} title={theme === 'light' ? 'Chế độ tối' : 'Chế độ sáng'} aria-pressed={theme === 'dark'} onClick={onThemeToggle}>{theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}</button><span className="auth-panel-caption">OCT VISION AI</span></div></div>
         <div className="auth-form-wrap">
           <div className="auth-form-icon">{isSignUp ? <UserRound size={27} /> : <LockKeyhole size={27} />}</div>
           <span className="section-kicker">{isSignUp ? 'TÀI KHOẢN MỚI' : 'CHÀO MỪNG TRỞ LẠI'}</span>
           <h2>{isSignUp ? 'Tạo tài khoản' : 'Đăng nhập'}</h2>
           <p className="auth-description">{isSignUp ? 'Thiết lập tài khoản để chuẩn bị cho không gian nghiên cứu cá nhân.' : 'Truy cập không gian làm việc dành cho nghiên cứu OCT.'}</p>
 
-          <div className="auth-preview-notice"><Info size={18} /><span>Đây là bản xem trước giao diện. Tài khoản chưa hoạt động; vui lòng không nhập mật khẩu thật.</span></div>
-
           <form className="auth-form" onSubmit={handleSubmit}>
-            {isSignUp && <label className="auth-field"><span>Họ và tên</span><div className="auth-input-wrap"><UserRound size={18} /><input name="fullName" type="text" placeholder="Nhập họ và tên" autoComplete="off" required /></div></label>}
-            <label className="auth-field"><span>Email</span><div className="auth-input-wrap"><Mail size={18} /><input name="email" type="email" placeholder="ten@donvi.edu.vn" autoComplete="off" required /></div></label>
-            <label className="auth-field"><span>Mật khẩu</span><div className="auth-input-wrap"><LockKeyhole size={18} /><input name="password" aria-label="Mật khẩu" type={showPassword ? 'text' : 'password'} placeholder={isSignUp ? 'Tối thiểu 8 ký tự' : 'Nhập mật khẩu'} autoComplete="off" minLength={8} required /><button type="button" className="auth-visibility" aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} onClick={() => setShowPassword((current) => !current)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
-            {isSignUp && <label className="auth-field"><span>Xác nhận mật khẩu</span><div className="auth-input-wrap"><LockKeyhole size={18} /><input name="confirmPassword" type={showPassword ? 'text' : 'password'} placeholder="Nhập lại mật khẩu" autoComplete="off" minLength={8} required /></div></label>}
+            {isSignUp && <label className="auth-field"><span>Họ và tên</span><div className="auth-input-wrap"><UserRound size={18} /><input name="fullName" type="text" placeholder="Nhập họ và tên" autoComplete="name" required maxLength={80} /></div></label>}
+            <label className="auth-field"><span>Email</span><div className="auth-input-wrap"><Mail size={18} /><input name="email" type="email" placeholder="ten@donvi.edu.vn" autoComplete="email" required /></div></label>
+            <label className="auth-field"><span>Mật khẩu</span><div className="auth-input-wrap"><LockKeyhole size={18} /><input name="password" aria-label="Mật khẩu" type={showPassword ? 'text' : 'password'} placeholder={isSignUp ? 'Tối thiểu 8 ký tự' : 'Nhập mật khẩu'} autoComplete={isSignUp ? 'new-password' : 'current-password'} minLength={8} required /><button type="button" className="auth-visibility" aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} onClick={() => setShowPassword((current) => !current)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
+            {isSignUp && <label className="auth-field"><span>Xác nhận mật khẩu</span><div className="auth-input-wrap"><LockKeyhole size={18} /><input name="confirmPassword" type={showPassword ? 'text' : 'password'} placeholder="Nhập lại mật khẩu" autoComplete="new-password" minLength={8} required /></div></label>}
             {error && <div className="auth-feedback auth-feedback-error" role="alert">{error}</div>}
-            {message && <div className="auth-feedback auth-feedback-info" role="status">{message}</div>}
-            <button className="button button-primary auth-submit" type="submit">{isSignUp ? 'Tạo tài khoản' : 'Đăng nhập'} <ArrowRight size={17} /></button>
+            <button className="button button-primary auth-submit" type="submit" disabled={busy}>{busy ? 'Đang xử lý...' : isSignUp ? 'Tạo tài khoản' : 'Đăng nhập'} <ArrowRight size={17} /></button>
           </form>
           <p className="auth-switch">{isSignUp ? 'Đã có tài khoản?' : 'Chưa có tài khoản?'} <Link to={isSignUp ? '/signin' : '/signup'}>{isSignUp ? 'Đăng nhập' : 'Đăng ký ngay'}</Link></p>
-          <div className="auth-demo-divider"><span>HOẶC</span></div>
-          <Link to="/" className="button button-secondary auth-demo-link">Tiếp tục xem bản demo <ArrowRight size={16} /></Link>
         </div>
       </section>
     </main>
   )
-}
-
-function ClearDataDialog({ count, onClose, onConfirm, busy }: { count: number; onClose: () => void; onConfirm: () => void; busy: boolean }) {
-  const cancelRef = useRef<HTMLButtonElement>(null)
-  const clearRef = useRef<HTMLButtonElement>(null)
-  useEffect(() => {
-    const previousFocus = document.activeElement as HTMLElement | null
-    cancelRef.current?.focus()
-    return () => previousFocus?.focus()
-  }, [])
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape' && !busy) onClose()
-      if (event.key === 'Tab') {
-        if (event.shiftKey && document.activeElement === cancelRef.current) { event.preventDefault(); clearRef.current?.focus() }
-        else if (!event.shiftKey && document.activeElement === clearRef.current) { event.preventDefault(); cancelRef.current?.focus() }
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose, busy])
-  return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose() }}><div className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="clear-title" aria-describedby="clear-description"><div className="dialog-icon"><Trash2 size={23} /></div><h2 id="clear-title">Xóa toàn bộ dữ liệu demo?</h2><p id="clear-description">{count} kết quả và các ảnh đã lưu trong trình duyệt này sẽ bị xóa. Bạn không thể hoàn tác.</p><div className="dialog-actions"><button ref={cancelRef} className="button button-secondary" disabled={busy} onClick={onClose}>Giữ lại</button><button ref={clearRef} className="button button-danger" disabled={busy} onClick={onConfirm}>{busy ? 'Đang xóa...' : 'Xóa dữ liệu'}</button></div></div></div>
-}
-
-export function SettingsPage({ count, onClear, pageSize, onPageSizeChange }: { count: number; onClear: () => Promise<void>; pageSize: PageSize; onPageSizeChange: (value: PageSize) => void }) {
-  const [confirming, setConfirming] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
-
-  async function clearAll() {
-    setBusy(true); setMessage(''); setError('')
-    try {
-      await onClear()
-      setMessage('Đã xóa toàn bộ dữ liệu demo trên trình duyệt này.')
-      setConfirming(false)
-    } catch {
-      setError('Không thể xóa dữ liệu lúc này. Vui lòng thử lại.')
-      setConfirming(false)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return <div className="page-content settings-page"><div className="page-heading"><div><div className="eyebrow">KHÔNG GIAN / CÀI ĐẶT</div><h1>Cài đặt ứng dụng</h1><p>Quản lý dữ liệu minh họa và xem trạng thái hiện tại của ứng dụng.</p></div></div><div className="settings-grid"><section className="surface settings-card"><div className="settings-card-icon"><Database size={23} /></div><span className="section-kicker">DỮ LIỆU TRÌNH DUYỆT</span><h2>Thư viện demo</h2><p>Ảnh và kết quả minh họa chỉ được lưu cục bộ trong trình duyệt đang dùng. Chúng không được gửi đến máy chủ.</p><div className="settings-data-count"><strong>{count}</strong><span>kết quả đang lưu</span></div>{error && <div className="auth-feedback auth-feedback-error" role="alert">{error}</div>}{message && <div className="auth-feedback auth-feedback-info" role="status">{message}</div>}<button className="button button-outline-danger" disabled={count === 0} onClick={() => setConfirming(true)}><Trash2 size={16} /> Xóa dữ liệu demo</button></section><section className="surface settings-card"><div className="settings-card-icon"><Settings2 size={23} /></div><span className="section-kicker">THÔNG TIN ỨNG DỤNG</span><h2>Trạng thái hệ thống</h2><p>Giao diện hiện ở giai đoạn xem trước. Mô hình dự đoán và hệ thống tài khoản sẽ được kết nối ở giai đoạn tiếp theo.</p><div className="settings-status-list"><div><span>Giao diện</span><strong>Đã sẵn sàng</strong></div><div><span>Mô hình AI</span><strong>Chưa kết nối</strong></div><div><span>Tài khoản</span><strong>Chưa kết nối</strong></div></div><Link className="settings-inline-link" to="/model">Xem thông tin mô hình <ArrowRight size={16} /></Link></section></div><section className="surface settings-preferences"><div className="settings-card-icon"><ListFilter size={22} /></div><div><span className="section-kicker">TÙY CHỌN HIỂN THỊ</span><h2>Lịch sử phân tích</h2><p>Số bản ghi hiển thị trên mỗi trang. Tùy chọn được lưu trong trình duyệt này.</p></div><label className="settings-page-size">Kết quả mỗi trang<select value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value) as PageSize)}><option value={8}>8 kết quả</option><option value={16}>16 kết quả</option><option value={32}>32 kết quả</option></select></label></section><section className="surface settings-account"><div className="settings-account-icon"><UserRound size={21} /></div><div><h2>Tài khoản nghiên cứu</h2><p>Xem trước giao diện đăng nhập và đăng ký. Thông tin nhập vào chưa được gửi hoặc lưu.</p></div><div className="settings-account-actions"><Link className="button button-secondary" to="/signin">Đăng nhập</Link><Link className="button button-primary" to="/signup">Đăng ký</Link></div></section>{confirming && <ClearDataDialog count={count} onClose={() => setConfirming(false)} onConfirm={() => void clearAll()} busy={busy} />}</div>
 }

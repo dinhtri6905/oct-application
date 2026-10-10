@@ -1,7 +1,16 @@
 frontend/node_modules/
 frontend/dist/
 frontend/.npm-cache/
+backend/.venv/
+backend/__pycache__/
+backend/app/__pycache__/
+backend/tests/__pycache__/
+backend/tests/.runtime/
+model/*.keras
 .artifacts/
 .env
 .env.*
 !.env.example
+
+
+.keras

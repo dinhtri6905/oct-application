@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f7f9fc" />
+    <script>
+      try {
+        const theme = localStorage.getItem('oct-vision-theme') === 'dark' ? 'dark' : 'light'
+        document.documentElement.dataset.theme = theme
+        document.documentElement.style.colorScheme = theme
+      } catch { document.documentElement.dataset.theme = 'light' }
+    </script>
     <meta name="description" content="OCT Vision AI — giao diện nghiên cứu ảnh OCT võng mạc." />
     <title>OCT Vision AI — Không gian nghiên cứu OCT</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />

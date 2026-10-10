@@ -1,43 +1,56 @@
 # OCT Vision AI
 
-Giao diện mẫu cho web app phân loại ảnh OCT võng mạc. Bản hiện tại triển khai các luồng giao diện bằng dữ liệu demo trong trình duyệt; chưa kết nối mô hình AI hoặc backend. Mọi điểm số trên giao diện chỉ để xem trước luồng sử dụng.
+Web app nghiên cứu phân loại ảnh OCT võng mạc bằng mô hình MaxViT đã huấn luyện. Ứng dụng có tài khoản, phân quyền dữ liệu, dự đoán một ảnh hoặc nhiều ảnh, lịch sử, thống kê và giao diện sáng/tối.
 
-## Các trang hiện có
+## Chạy bằng Docker Compose
 
-- Tổng quan, dự đoán một ảnh và dự đoán nhiều ảnh (demo).
-- Lịch sử với tìm kiếm, lọc theo lớp/thời gian/điểm, sắp xếp, phân trang; chi tiết với tải JSON, xóa và phản hồi tham khảo.
-- Phân tích dữ liệu demo, thông tin mô hình và Cài đặt (xóa dữ liệu, số bản ghi mỗi trang).
-- Đăng nhập và Đăng ký là giao diện xem trước. Form kiểm tra đầu vào nhưng không tạo tài khoản hoặc lưu mật khẩu.
+Yêu cầu Docker Desktop hoặc Docker Engine cùng Compose. Đặt `model/maxvit_oct.keras` đúng như cấu trúc dự án; `model/maxvit_oct.ipynb` là nguồn đối chiếu kiến trúc và tiền xử lý.
 
-Grad-CAM/heatmap có màn hình chờ kết nối model. Phản hồi và biểu đồ hiện tại không phải dữ liệu nghiên cứu đã kiểm chứng.
+```powershell
+Copy-Item .env.example .env
+docker compose up -d --build
+```
 
-## Chạy giao diện
+Đổi `POSTGRES_PASSWORD` trong `.env` trước khi dùng dữ liệu thật. Mở **http://localhost:8088** (hoặc cổng `APP_PORT`). Tạo tài khoản tại `/signup`; trang Tổng quan và mọi dữ liệu chỉ mở khi đã đăng nhập. Dừng bằng `docker compose down`; dữ liệu PostgreSQL và ảnh vẫn nằm trong Docker volumes. `docker compose down -v` xóa các volumes đó.
 
-Yêu cầu Node.js phiên bản tương thích với Vite hiện dùng.
+Ba service: `frontend` (Nginx phục vụ React và proxy `/api`), `backend` (FastAPI + TensorFlow/Keras) và `db` (PostgreSQL). Model được mount read-only, ảnh trong volume riêng, metadata và tài khoản trong PostgreSQL. Backend không công bố cổng ra ngoài; trình duyệt truy cập API cùng nguồn qua Nginx. Khi phục vụ qua HTTPS, đặt `COOKIE_SECURE=true` và cấu hình TLS ở reverse proxy.
+
+## Luồng dữ liệu và model
+
+- Đăng ký/đăng nhập tạo phiên trong cookie HttpOnly, SameSite Strict; thao tác ghi yêu cầu CSRF token. Mật khẩu được băm bằng Argon2.
+- Ảnh JPG/PNG tối đa 10 MB và 20 triệu pixel được kiểm tra ở backend; bản lưu được mã hóa lại để bỏ metadata ảnh. Tên file gốc không được lưu. Mỗi tài khoản chỉ xem, sửa phản hồi và xóa kết quả/ảnh của mình.
+- `backend/app/maxvit_layers.py` được trích nguyên định nghĩa lớp tùy chỉnh từ notebook. Preprocessing: decode ảnh, chuyển về 3 kênh RGB, resize bilinear `224×224`, chia `255`. Bốn lớp theo thứ tự `CNV, DME, DRUSEN, NORMAL`. Dự đoán lấy trung bình điểm của ảnh gốc và ảnh lật ngang, giống bước test trong notebook. Model lưu mỗi bản ghi kèm phiên bản và cách tiền xử lý.
+- Kết quả chỉ phục vụ nghiên cứu và giáo dục, không dùng làm chẩn đoán lâm sàng. Grad-CAM hiện chưa có pipeline được xác minh nên UI không tạo heatmap giả.
+
+Nếu model không nạp được, ứng dụng vẫn cho phép đăng nhập/xem dữ liệu, nhưng endpoint dự đoán trả `503`; xem `docker compose logs backend` và trạng thái ở trang Thông tin mô hình.
+
+## Phát triển và kiểm thử
+
+Frontend phát triển trực tiếp với Vite; `/api` được proxy tới backend tại `127.0.0.1:8000`:
 
 ```powershell
 cd frontend
-npm.cmd install
+npm.cmd ci
 npm.cmd run dev
 ```
 
-Mở http://127.0.0.1:5173/ . Trên hệ điều hành khác có thể dùng `npm` thay `npm.cmd`.
-
-## Kiểm tra
+Kiểm tra frontend và hợp đồng API (API test dùng SQLite và stub inference, không đại diện cho điểm model thật):
 
 ```powershell
 cd frontend
 npm.cmd run build
 npm.cmd run test:ui
+cd ..\backend
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.venv\Scripts\python.exe -m pytest -q tests
 ```
 
-`test:ui` dùng Chrome có sẵn để kiểm tra luồng giao diện desktop/mobile, upload, batch, phản hồi, auth xem trước và xóa dữ liệu; ảnh chụp nằm trong `.artifacts/`. Cần chạy `npm.cmd run dev` trước khi thực hiện kiểm tra này.
+`test:ui` cần Vite đang chạy và Chrome có sẵn; mock API chỉ tồn tại trong bài kiểm tra. Kiểm thử model thật cần chạy Compose và gửi ảnh OCT hợp lệ đã được phép sử dụng. Endpoint API tại `/docs` qua backend nội bộ; health qua `/api/health` trên frontend.
 
 ## Tài liệu
 
 - [Kế hoạch sản phẩm](plan.md)
 - [Đặc tả SDD](docs/sdd/README.md)
-- [Thiết kế hệ thống và giao diện](docs/sdd/design.md)
-- [Backlog triển khai](docs/sdd/tasks.md)
-
-Ảnh tải lên và kết quả demo được lưu bằng IndexedDB trong trình duyệt hiện tại. Dữ liệu này không phải kết quả nghiên cứu. Khi có model artifact và mã tiền xử lý, bước tiếp theo là triển khai backend và kết nối suy luận thật theo SDD.
+- [Thiết kế hệ thống](docs/sdd/design.md)
+- [Backlog và cổng nghiệm thu](docs/sdd/tasks.md)

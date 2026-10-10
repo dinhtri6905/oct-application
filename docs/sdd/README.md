@@ -11,7 +11,7 @@ Tài liệu này chuyển [product plan](../../plan.md) thành kế hoạch **Sp
 
 ## Trạng thái và quyết định mặc định
 
-**Trạng thái:** đã có [giao diện demo React](../../frontend/) cho Dashboard, Prediction, Batch, History/Detail, Analytics, Model Info, Settings và Sign in/Sign up. Dữ liệu minh họa được lưu trong IndexedDB của trình duyệt; tùy chọn phân trang lưu trong localStorage. Build và kiểm tra luồng giao diện desktop/mobile đã chạy thành công. Backend, xác thực và model thật chưa được kết nối; giao diện demo chưa đạt điều kiện phát hành MVP. Không coi ví dụ kết quả, tên model và số accuracy trong `plan.md` là dữ liệu đã được xác minh.
+**Trạng thái:** [frontend React](../../frontend/), [backend FastAPI](../../backend/) và [Docker Compose](../../compose.yaml) đã được nối qua API. Có đăng ký/đăng nhập, phân quyền lịch sử/ảnh theo tài khoản, dự đoán một ảnh hoặc theo lô, PostgreSQL và volume ảnh riêng. Notebook trong `model/` xác nhận kiến trúc, lớp đầu ra và preprocessing; định nghĩa custom layers đã được trích vào backend. Kiểm thử API dùng stub inference, còn kiểm thử end-to-end với TensorFlow và ảnh OCT hợp lệ vẫn cần ghi bằng chứng trên môi trường chạy thực tế trước khi đánh dấu hoàn thành MVP. Không coi ví dụ accuracy `99.59%` trong `plan.md` là dữ liệu đã được xác minh.
 
 Để có thể bắt đầu thiết kế mà vẫn thay đổi được khi nhận model, MVP mặc định là công cụ nghiên cứu dùng ảnh OCT đã khử định danh, chạy trong môi trường kiểm soát, giao diện tiếng Việt. Mọi triển khai truy cập qua mạng cần xác thực và phân quyền trước khi lưu ảnh hoặc cho phép xem lịch sử. Nếu chỉ chạy máy cá nhân để trình diễn, cấu hình local có thể dùng một tài khoản nghiên cứu duy nhất.
 
@@ -20,8 +20,8 @@ Các quyết định phải chốt ở giai đoạn 0, trước khi tích hợp 
 | Mã | Quyết định cần chốt | Mặc định tạm thời / tác động |
 | --- | --- | --- |
 | D-01 | Người dùng và môi trường chạy | Nhà nghiên cứu, môi trường kiểm soát; không mở public khi chưa có xác thực. |
-| D-02 | Model artifact, framework, class order | Chưa có; adapter inference phải khóa đúng thứ tự `CNV, DME, DRUSEN, NORMAL`. |
-| D-03 | Tiền xử lý và loại ảnh OCT được chấp nhận | Lấy từ pipeline huấn luyện; không tự suy đoán resize, normalization hay chất lượng ảnh. |
+| D-02 | Model artifact, framework, class order | `maxvit_oct.keras` và notebook Keras 3/TensorFlow 2.20; `CNV, DME, DRUSEN, NORMAL`. |
+| D-03 | Tiền xử lý và loại ảnh OCT được chấp nhận | Theo notebook: RGB 224×224, bilinear, pixel/255, trung bình ảnh gốc + lật ngang khi dự đoán. |
 | D-04 | Nguồn dữ liệu, quyền lưu ảnh và thời hạn lưu | Chỉ nhận ảnh được phép sử dụng, đã khử định danh; chính sách lưu/xóa cần xác nhận. |
 | D-05 | Hiệu năng trên phần cứng đích | Đo thời gian inference thật, rồi đặt timeout và SLO phù hợp. |
 | D-06 | Số liệu model công bố | Chỉ hiển thị khi có báo cáo kiểm định và nguồn; tạm ẩn `99.59%`. |

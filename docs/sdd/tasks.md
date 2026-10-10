@@ -2,6 +2,8 @@
 
 Các việc bên dưới là backlog có thứ tự. Chỉ chuyển giai đoạn khi điều kiện ra của giai đoạn trước đạt; phần giao diện có thể phát triển bằng fixture trong lúc chuẩn bị model, nhưng không ghi fixture là kết quả thật.
 
+**Cập nhật triển khai:** artifact và notebook đã có trong `model/`; frontend, backend, Compose, tài khoản, API dự đoán và private image storage đã được viết. Kiểm thử API xác thực/phân quyền dùng SQLite và stub inference; kiểm thử giao diện dùng mock API. Cổng 2–4 chỉ đạt khi model thật nạp được trong Compose và có ca thử end-to-end bằng ảnh OCT hợp lệ, được phép sử dụng.
+
 ## Giai đoạn 0 — Chốt đầu vào và rủi ro
 
 | ID | Việc | Yêu cầu liên quan | Đầu ra và điều kiện ra |
@@ -59,4 +61,4 @@ Các việc bên dưới là backlog có thứ tự. Chỉ chuyển giai đoạn
 
 ## Backlog sau MVP
 
-**V1:** Grad-CAM sau khi kiểm tra phù hợp kiến trúc model và giới hạn diễn giải; biểu đồ xu hướng/analytics; tải kết quả; ground truth có nguồn và người kiểm duyệt. **V2:** batch prediction, export, confusion matrix/F1 chỉ từ nhãn đã xác minh, tìm kiếm nâng cao, so sánh kết quả. Một số phần đã có giao diện demo và dữ liệu mô phỏng, nhưng chưa được xem là hoàn thành chức năng thật. Mỗi mục cần spec và điều kiện nghiệm thu riêng trước khi kết nối backend/model.
+**V1:** Grad-CAM sau khi kiểm tra phù hợp kiến trúc model và giới hạn diễn giải; biểu đồ xu hướng/analytics; tải kết quả; ground truth có nguồn và người kiểm duyệt. **V2:** batch prediction, export, confusion matrix/F1 chỉ từ nhãn đã xác minh, tìm kiếm nâng cao, so sánh kết quả. Một số phần đã có giao diện và trạng thái chờ kết nối, nhưng chưa được xem là hoàn thành chức năng thật. Mỗi mục cần spec và điều kiện nghiệm thu riêng trước khi kết nối backend/model.
