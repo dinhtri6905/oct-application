@@ -59,4 +59,4 @@ Các việc bên dưới là backlog có thứ tự. Chỉ chuyển giai đoạn
 
 ## Backlog sau MVP
 
-**V1:** Grad-CAM sau khi kiểm tra phù hợp kiến trúc model và giới hạn diễn giải; biểu đồ xu hướng/analytics; tải kết quả; ground truth có nguồn và người kiểm duyệt. **V2:** batch prediction, export, confusion matrix/F1 chỉ từ nhãn đã xác minh, tìm kiếm nâng cao, so sánh kết quả. Mỗi mục cần spec và điều kiện nghiệm thu riêng trước khi code.
+**V1:** Grad-CAM sau khi kiểm tra phù hợp kiến trúc model và giới hạn diễn giải; biểu đồ xu hướng/analytics; tải kết quả; ground truth có nguồn và người kiểm duyệt. **V2:** batch prediction, export, confusion matrix/F1 chỉ từ nhãn đã xác minh, tìm kiếm nâng cao, so sánh kết quả. Một số phần đã có giao diện demo và dữ liệu mô phỏng, nhưng chưa được xem là hoàn thành chức năng thật. Mỗi mục cần spec và điều kiện nghiệm thu riêng trước khi kết nối backend/model.

@@ -11,7 +11,7 @@ Tài liệu này chuyển [product plan](../../plan.md) thành kế hoạch **Sp
 
 ## Trạng thái và quyết định mặc định
 
-**Trạng thái:** đã có [giao diện demo React](../../frontend/) cho năm màn hình MVP, lưu dữ liệu minh họa trong IndexedDB của trình duyệt. Build và kiểm tra luồng giao diện desktop/mobile đã chạy thành công. Backend và model thật chưa được kết nối; giao diện demo chưa đạt điều kiện phát hành MVP. Không coi ví dụ kết quả, tên model và số accuracy trong `plan.md` là dữ liệu đã được xác minh.
+**Trạng thái:** đã có [giao diện demo React](../../frontend/) cho Dashboard, Prediction, Batch, History/Detail, Analytics, Model Info, Settings và Sign in/Sign up. Dữ liệu minh họa được lưu trong IndexedDB của trình duyệt; tùy chọn phân trang lưu trong localStorage. Build và kiểm tra luồng giao diện desktop/mobile đã chạy thành công. Backend, xác thực và model thật chưa được kết nối; giao diện demo chưa đạt điều kiện phát hành MVP. Không coi ví dụ kết quả, tên model và số accuracy trong `plan.md` là dữ liệu đã được xác minh.
 
 Để có thể bắt đầu thiết kế mà vẫn thay đổi được khi nhận model, MVP mặc định là công cụ nghiên cứu dùng ảnh OCT đã khử định danh, chạy trong môi trường kiểm soát, giao diện tiếng Việt. Mọi triển khai truy cập qua mạng cần xác thực và phân quyền trước khi lưu ảnh hoặc cho phép xem lịch sử. Nếu chỉ chạy máy cá nhân để trình diễn, cấu hình local có thể dùng một tài khoản nghiên cứu duy nhất.
 

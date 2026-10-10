@@ -1,6 +1,15 @@
 # OCT Vision AI
 
-Giao diện mẫu cho web app phân loại ảnh OCT võng mạc. Bản hiện tại triển khai các màn hình MVP bằng dữ liệu demo trong trình duyệt; chưa kết nối mô hình AI hoặc backend. Mọi điểm số trên giao diện chỉ để xem trước luồng sử dụng.
+Giao diện mẫu cho web app phân loại ảnh OCT võng mạc. Bản hiện tại triển khai các luồng giao diện bằng dữ liệu demo trong trình duyệt; chưa kết nối mô hình AI hoặc backend. Mọi điểm số trên giao diện chỉ để xem trước luồng sử dụng.
+
+## Các trang hiện có
+
+- Tổng quan, dự đoán một ảnh và dự đoán nhiều ảnh (demo).
+- Lịch sử với tìm kiếm, lọc theo lớp/thời gian/điểm, sắp xếp, phân trang; chi tiết với tải JSON, xóa và phản hồi tham khảo.
+- Phân tích dữ liệu demo, thông tin mô hình và Cài đặt (xóa dữ liệu, số bản ghi mỗi trang).
+- Đăng nhập và Đăng ký là giao diện xem trước. Form kiểm tra đầu vào nhưng không tạo tài khoản hoặc lưu mật khẩu.
+
+Grad-CAM/heatmap có màn hình chờ kết nối model. Phản hồi và biểu đồ hiện tại không phải dữ liệu nghiên cứu đã kiểm chứng.
 
 ## Chạy giao diện
 
@@ -22,7 +31,7 @@ npm.cmd run build
 npm.cmd run test:ui
 ```
 
-`test:ui` dùng Chrome có sẵn để kiểm tra luồng giao diện desktop/mobile và lưu ảnh chụp trong `.artifacts/`. Cần chạy `npm.cmd run dev` trước khi thực hiện kiểm tra này.
+`test:ui` dùng Chrome có sẵn để kiểm tra luồng giao diện desktop/mobile, upload, batch, phản hồi, auth xem trước và xóa dữ liệu; ảnh chụp nằm trong `.artifacts/`. Cần chạy `npm.cmd run dev` trước khi thực hiện kiểm tra này.
 
 ## Tài liệu
 

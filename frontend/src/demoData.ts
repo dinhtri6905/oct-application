@@ -38,6 +38,12 @@ export interface DemoPrediction {
   classScores: Scores
   createdAt: string
   isSeed: boolean
+  feedback?: {
+    correct: boolean
+    actualClass: ClassCode
+    createdAt: string
+    status: 'unverified'
+  }
 }
 
 const DB_NAME = 'oct-vision-interface-demo'

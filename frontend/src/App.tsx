@@ -4,7 +4,7 @@ import { Link, NavLink, Route, Routes, useLocation, useNavigate, useParams, useS
 import {
   Activity, AlertCircle, ArrowDownRight, ArrowLeft, ArrowRight, BarChart3,
   CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
-  Clock3, CloudUpload, Eye, FileImage, FlaskConical, History, House,
+  Clock3, CloudUpload, Download, Eye, FileImage, Files, FlaskConical, History, House,
   Info, Layers3, Menu, Microscope, MoreHorizontal, Search, Settings2, ShieldCheck,
   Sparkles, Trash2, X,
 } from 'lucide-react'
@@ -14,13 +14,18 @@ import {
 } from './demoData'
 import type { ClassCode, DemoPrediction, Scores } from './demoData'
 import { AuthPage, SettingsPage } from './AdditionalPages'
+import { AnalyticsPage, BatchPage, ComparisonPanel, ExplanationPanel, FeedbackPanel } from './FeaturePages'
+import { readPageSize, savePageSize } from './preferences'
+import type { PageSize } from './preferences'
 
 type IconType = typeof House
 
 const navItems: { to: string; label: string; icon: IconType; end?: boolean }[] = [
   { to: '/', label: 'Tổng quan', icon: House, end: true },
   { to: '/prediction', label: 'Dự đoán ảnh', icon: Microscope },
+  { to: '/batch', label: 'Dự đoán hàng loạt', icon: Files },
   { to: '/history', label: 'Lịch sử', icon: History },
+  { to: '/analytics', label: 'Phân tích dữ liệu', icon: BarChart3 },
   { to: '/model', label: 'Thông tin mô hình', icon: Layers3 },
 ]
 
@@ -258,20 +263,23 @@ function PredictionPage({ onRefresh }: { onRefresh: () => Promise<void> }) {
   )
 }
 
-function HistoryPage({ records, loading, error }: { records: DemoPrediction[]; loading: boolean; error: string }) {
+function HistoryPage({ records, loading, error, pageSize }: { records: DemoPrediction[]; loading: boolean; error: string; pageSize: PageSize }) {
   const [params, setParams] = useSearchParams()
+  const paramDraft = useRef(params.toString())
+  useEffect(() => { paramDraft.current = params.toString() }, [params])
   const query = params.get('q') ?? ''
   const classFilter = params.get('class') ?? 'ALL'
   const period = params.get('period') ?? 'all'
+  const scoreFilter = params.get('score') ?? 'all'
   const sort = params.get('sort') ?? 'newest'
   const currentPage = Math.max(1, Number(params.get('page') ?? '1') || 1)
-  const pageSize = 8
 
   function updateParam(key: string, value: string) {
-    const next = new URLSearchParams(params)
+    const next = new URLSearchParams(paramDraft.current)
     if (!value || value === 'ALL' || value === 'all' || value === 'newest') next.delete(key)
     else next.set(key, value)
     if (key !== 'page') next.delete('page')
+    paramDraft.current = next.toString()
     setParams(next)
   }
 
@@ -282,9 +290,19 @@ function HistoryPage({ records, loading, error }: { records: DemoPrediction[]; l
       if (classFilter !== 'ALL' && record.predictedClass !== classFilter) return false
       if (lowerQuery && !`${record.displayName} ${record.predictedClass} ${record.id}`.toLocaleLowerCase('vi-VN').includes(lowerQuery)) return false
       if (period !== 'all' && now - Date.parse(record.createdAt) > Number(period) * 24 * 3_600_000) return false
+      const score = record.classScores[record.predictedClass]
+      if (scoreFilter === 'high' && score < .9) return false
+      if (scoreFilter === 'mid' && (score < .7 || score >= .9)) return false
+      if (scoreFilter === 'low' && score >= .7) return false
       return true
-    }).sort((a, b) => sort === 'oldest' ? Date.parse(a.createdAt) - Date.parse(b.createdAt) : Date.parse(b.createdAt) - Date.parse(a.createdAt))
-  }, [records, query, classFilter, period, sort])
+    }).sort((a, b) => {
+      if (sort === 'highest' || sort === 'lowest') {
+        const difference = a.classScores[a.predictedClass] - b.classScores[b.predictedClass]
+        return sort === 'highest' ? -difference : difference
+      }
+      return sort === 'oldest' ? Date.parse(a.createdAt) - Date.parse(b.createdAt) : Date.parse(b.createdAt) - Date.parse(a.createdAt)
+    })
+  }, [records, query, classFilter, period, scoreFilter, sort])
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
   const page = Math.min(currentPage, pageCount)
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize)
@@ -293,7 +311,15 @@ function HistoryPage({ records, loading, error }: { records: DemoPrediction[]; l
     <div className="page-content"><PageHeading eyebrow="KHÔNG GIAN / LỊCH SỬ" title="Lịch sử phân tích" description="Tìm lại từng ảnh và xem chi tiết kết quả trong không gian demo này." action={<Link className="button button-primary" to="/prediction"><CloudUpload size={17} /> Phân tích ảnh mới</Link>} />
       <div className="history-summary"><div className="history-summary-icon"><History size={22} /></div><div><strong>{records.length} kết quả trong lịch sử demo</strong><span>Dữ liệu chỉ được lưu trong trình duyệt này, chưa đồng bộ với máy chủ.</span></div><DemoPill /></div>
       <section className="surface history-surface"><div className="surface-heading history-heading"><div><span className="section-kicker">THƯ VIỆN KẾT QUẢ</span><h2>Tất cả lần phân tích</h2></div><span className="result-count">{filtered.length} kết quả</span></div>
-        <div className="history-toolbar"><label className="search-box"><Search size={18} /><span className="visually-hidden">Tìm theo tên hoặc lớp</span><input value={query} onChange={(event) => updateParam('q', event.target.value)} placeholder="Tìm theo tên, mã hoặc lớp..." /></label><div className="filter-group"><label className="select-wrap"><span className="visually-hidden">Lọc theo lớp</span><select value={classFilter} onChange={(event) => updateParam('class', event.target.value)}><option value="ALL">Tất cả lớp</option>{CLASS_CODES.map((code) => <option key={code} value={code}>{code}</option>)}</select><ChevronDown size={15} /></label><label className="select-wrap"><CalendarDays size={16} /><span className="visually-hidden">Lọc theo thời gian</span><select value={period} onChange={(event) => updateParam('period', event.target.value)}><option value="all">Mọi thời gian</option><option value="7">7 ngày qua</option><option value="30">30 ngày qua</option></select><ChevronDown size={15} /></label><label className="select-wrap"><span className="visually-hidden">Sắp xếp</span><select value={sort} onChange={(event) => updateParam('sort', event.target.value)}><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option></select><ChevronDown size={15} /></label></div></div>
+        <div className="history-toolbar">
+          <label className="search-box"><Search size={18} /><span className="visually-hidden">Tìm theo tên hoặc lớp</span><input value={query} onChange={(event) => updateParam('q', event.target.value)} placeholder="Tìm theo tên, mã hoặc lớp..." /></label>
+          <div className="filter-group">
+            <label className="select-wrap"><span className="visually-hidden">Lọc theo lớp</span><select value={classFilter} onChange={(event) => updateParam('class', event.target.value)}><option value="ALL">Tất cả lớp</option>{CLASS_CODES.map((code) => <option key={code} value={code}>{code}</option>)}</select><ChevronDown size={15} /></label>
+            <label className="select-wrap"><CalendarDays size={16} /><span className="visually-hidden">Lọc theo thời gian</span><select value={period} onChange={(event) => updateParam('period', event.target.value)}><option value="all">Mọi thời gian</option><option value="7">7 ngày qua</option><option value="30">30 ngày qua</option></select><ChevronDown size={15} /></label>
+            <label className="select-wrap"><span className="visually-hidden">Lọc theo điểm demo</span><select value={scoreFilter} onChange={(event) => updateParam('score', event.target.value)}><option value="all">Mọi mức điểm</option><option value="high">90–100%</option><option value="mid">70–89%</option><option value="low">Dưới 70%</option></select><ChevronDown size={15} /></label>
+            <label className="select-wrap"><span className="visually-hidden">Sắp xếp</span><select value={sort} onChange={(event) => updateParam('sort', event.target.value)}><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option><option value="highest">Điểm cao nhất</option><option value="lowest">Điểm thấp nhất</option></select><ChevronDown size={15} /></label>
+          </div>
+        </div>
         {error && <div className="inline-error"><AlertCircle size={18} />{error}</div>}
         {loading ? <div className="loading-lines history-loading"><span /><span /><span /><span /></div> : visible.length ? <><div className="history-table-wrap"><table className="history-table"><thead><tr><th>ẢNH OCT</th><th>PHÂN LOẠI</th><th>ĐIỂM DEMO</th><th>THỜI GIAN</th><th><span className="visually-hidden">Chi tiết</span></th></tr></thead><tbody>{visible.map((record) => <tr key={record.id}><td><Link className="table-image-cell" to={`/history/${record.id}`}><img src={record.imageDataUrl} alt="Ảnh minh họa của kết quả demo" /><span><strong>{record.displayName}</strong><small>{record.isSeed ? 'Ảnh minh họa' : `${record.imageWidth} × ${record.imageHeight} px`}</small></span></Link></td><td><ClassBadge code={record.predictedClass} /></td><td className="table-score">{formatPercent(record.classScores[record.predictedClass])}</td><td className="table-date">{formatDate(record.createdAt)}</td><td><Link className="table-action" aria-label={`Xem chi tiết ${record.displayName}`} to={`/history/${record.id}`}><ArrowRight size={18} /></Link></td></tr>)}</tbody></table></div><div className="history-mobile-list">{visible.map((record) => <Link className="history-mobile-card" key={record.id} to={`/history/${record.id}`}><img src={record.imageDataUrl} alt="Ảnh minh họa của kết quả demo" /><div><strong>{record.displayName}</strong><span>{formatDate(record.createdAt)}</span><div><ClassBadge code={record.predictedClass} /><b>{formatPercent(record.classScores[record.predictedClass])}</b></div></div><ChevronRight size={17} /></Link>)}</div><div className="table-footer"><span>Hiển thị {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} trong {filtered.length} kết quả</span><div className="pagination"><button aria-label="Trang trước" disabled={page <= 1} onClick={() => updateParam('page', String(page - 1))}><ChevronLeft size={17} /></button><span>{page} / {pageCount}</span><button aria-label="Trang sau" disabled={page >= pageCount} onClick={() => updateParam('page', String(page + 1))}><ChevronRight size={17} /></button></div></div></> : <EmptyState icon={Search} title={records.length ? 'Không tìm thấy kết quả phù hợp' : 'Chưa có kết quả nào'} description={records.length ? 'Hãy thay đổi từ khóa hoặc bộ lọc để xem thêm.' : 'Bắt đầu bằng cách tải ảnh lên ở trang Dự đoán.'} action={records.length ? <button className="button button-secondary" onClick={() => setParams(new URLSearchParams())}>Xóa bộ lọc</button> : <Link className="button button-primary" to="/prediction">Bắt đầu phân tích <ArrowRight size={17} /></Link>} />}
       </section><ResearchNotice />
@@ -323,7 +349,7 @@ function ConfirmDialog({ onClose, onConfirm, busy }: { onClose: () => void; onCo
   return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose() }}><div className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-description"><div className="dialog-icon"><Trash2 size={23} /></div><h2 id="confirm-title">Xóa kết quả demo?</h2><p id="confirm-description">Bản ghi và ảnh lưu trong trình duyệt này sẽ bị xóa. Bạn không thể hoàn tác thao tác này.</p><div className="dialog-actions"><button ref={cancelRef} className="button button-secondary" disabled={busy} onClick={onClose}>Giữ lại</button><button ref={deleteRef} className="button button-danger" disabled={busy} onClick={onConfirm}>{busy ? 'Đang xóa...' : 'Xóa kết quả'}</button></div></div></div>
 }
 
-function DetailPage({ records, loading, onDelete }: { records: DemoPrediction[]; loading: boolean; onDelete: (id: string) => Promise<void> }) {
+function DetailPage({ records, loading, onDelete, onSave }: { records: DemoPrediction[]; loading: boolean; onDelete: (id: string) => Promise<void>; onSave: (record: DemoPrediction) => Promise<void> }) {
   const { id } = useParams()
   const navigate = useNavigate()
   const [confirming, setConfirming] = useState(false)
@@ -339,7 +365,16 @@ function DetailPage({ records, loading, onDelete }: { records: DemoPrediction[];
     catch { setError('Không thể xóa kết quả. Vui lòng thử lại.'); setConfirming(false) }
     finally { setDeleting(false) }
   }
-  return <div className="page-content"><Link className="back-link" to="/history"><ArrowLeft size={17} /> Trở về lịch sử</Link><PageHeading eyebrow="KHÔNG GIAN / LỊCH SỬ / CHI TIẾT" title="Chi tiết phân tích" description={`Bản ghi demo ${record.displayName} · ${formatDate(record.createdAt)}`} action={<DemoPill />} />{error && <div className="inline-error" role="alert"><AlertCircle size={18} />{error}</div>}<div className="detail-grid"><section className="surface detail-image-surface"><div className="surface-heading"><div><span className="section-kicker">ẢNH ĐẦU VÀO</span><h2>Ảnh đã lưu</h2></div><FileImage size={20} className="surface-heading-icon" /></div><div className="detail-image"><img src={record.imageDataUrl} alt="Ảnh đầu vào được lưu trong bản ghi demo" /></div><div className="image-caption"><span><FileImage size={16} /> {record.displayName}</span><span>{record.imageWidth} × {record.imageHeight} px</span></div></section><section className="surface detail-result-surface"><div className="surface-heading"><div><span className="section-kicker">KẾT QUẢ MINH HỌA</span><h2>Phân loại bốn lớp</h2></div><Activity size={20} className="surface-heading-icon" /></div><div className="detail-result-lead"><ClassBadge code={record.predictedClass} /><strong>{CLASS_DETAILS[record.predictedClass].name}</strong><span>Điểm demo cao nhất <b>{formatPercent(record.classScores[record.predictedClass])}</b></span></div><div className="detail-score-heading">Điểm từng lớp <span>MINH HỌA</span></div><ScoreList scores={record.classScores} large /><div className="detail-warning"><Info size={17} /> Kết quả được mô phỏng từ thông tin file, không phản ánh nội dung ảnh.</div></section></div><div className="detail-lower"><section className="surface metadata-surface"><div className="surface-heading"><div><span className="section-kicker">THÔNG TIN BẢN GHI</span><h2>Chi tiết kỹ thuật</h2></div></div><dl className="metadata-grid"><div><dt>Mã kết quả</dt><dd className="mono">{record.id}</dd></div><div><dt>Thời gian</dt><dd>{formatDate(record.createdAt)}</dd></div><div><dt>Nguồn kết quả</dt><dd>Giao diện demo · chưa kết nối mô hình</dd></div><div><dt>Kích thước file</dt><dd>{formatBytes(record.sizeBytes)}</dd></div></dl></section><section className="surface detail-actions-surface"><span className="section-kicker">THAO TÁC</span><h2>Tiếp tục nghiên cứu</h2><p>Bắt đầu với ảnh khác hoặc quản lý bản ghi hiện tại.</p><Link className="button button-primary button-full" to="/prediction">Phân tích ảnh khác <ArrowRight size={17} /></Link><button className="button button-outline-danger button-full" onClick={() => setConfirming(true)}><Trash2 size={16} /> Xóa kết quả demo</button></section></div><ResearchNotice />{confirming && <ConfirmDialog onClose={() => setConfirming(false)} onConfirm={() => void remove()} busy={deleting} />}</div>
+  function downloadResult() {
+    if (!record) return
+    const { imageDataUrl: _imageDataUrl, ...metadata } = record
+    void _imageDataUrl
+    const url = URL.createObjectURL(new Blob([JSON.stringify({ ...metadata, source: 'DEMO', note: 'Kết quả mô phỏng, không phải suy luận của mô hình AI.' }, null, 2)], { type: 'application/json' }))
+    const anchor = document.createElement('a')
+    anchor.href = url; anchor.download = `${record.displayName}-demo.json`; anchor.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+  return <div className="page-content"><Link className="back-link" to="/history"><ArrowLeft size={17} /> Trở về lịch sử</Link><PageHeading eyebrow="KHÔNG GIAN / LỊCH SỬ / CHI TIẾT" title="Chi tiết phân tích" description={`Bản ghi demo ${record.displayName} · ${formatDate(record.createdAt)}`} action={<DemoPill />} />{error && <div className="inline-error" role="alert"><AlertCircle size={18} />{error}</div>}<div className="detail-grid"><section className="surface detail-image-surface"><div className="surface-heading"><div><span className="section-kicker">ẢNH ĐẦU VÀO</span><h2>Ảnh đã lưu</h2></div><FileImage size={20} className="surface-heading-icon" /></div><div className="detail-image"><img src={record.imageDataUrl} alt="Ảnh đầu vào được lưu trong bản ghi demo" /></div><div className="image-caption"><span><FileImage size={16} /> {record.displayName}</span><span>{record.imageWidth} × {record.imageHeight} px</span></div></section><section className="surface detail-result-surface"><div className="surface-heading"><div><span className="section-kicker">KẾT QUẢ MINH HỌA</span><h2>Phân loại bốn lớp</h2></div><Activity size={20} className="surface-heading-icon" /></div><div className="detail-result-lead"><ClassBadge code={record.predictedClass} /><strong>{CLASS_DETAILS[record.predictedClass].name}</strong><span>Điểm demo cao nhất <b>{formatPercent(record.classScores[record.predictedClass])}</b></span></div><div className="detail-score-heading">Điểm từng lớp <span>MINH HỌA</span></div><ScoreList scores={record.classScores} large /><div className="detail-warning"><Info size={17} /> Kết quả được mô phỏng từ thông tin file, không phản ánh nội dung ảnh.</div></section></div><div className="detail-lower"><section className="surface metadata-surface"><div className="surface-heading"><div><span className="section-kicker">THÔNG TIN BẢN GHI</span><h2>Chi tiết kỹ thuật</h2></div></div><dl className="metadata-grid"><div><dt>Mã kết quả</dt><dd className="mono">{record.id}</dd></div><div><dt>Thời gian</dt><dd>{formatDate(record.createdAt)}</dd></div><div><dt>Nguồn kết quả</dt><dd>Giao diện demo · chưa kết nối mô hình</dd></div><div><dt>Kích thước file</dt><dd>{formatBytes(record.sizeBytes)}</dd></div></dl></section><section className="surface detail-actions-surface"><span className="section-kicker">THAO TÁC</span><h2>Tiếp tục nghiên cứu</h2><p>Bắt đầu với ảnh khác hoặc quản lý bản ghi hiện tại.</p><Link className="button button-primary button-full" to="/prediction">Phân tích ảnh khác <ArrowRight size={17} /></Link><button className="button button-secondary button-full" onClick={downloadResult}><Download size={16} /> Tải kết quả demo</button><button className="button button-outline-danger button-full" onClick={() => setConfirming(true)}><Trash2 size={16} /> Xóa kết quả demo</button></section></div><div className="detail-extra-grid"><ExplanationPanel record={record} /><FeedbackPanel record={record} onSave={onSave} /></div><ComparisonPanel record={record} /><ResearchNotice />{confirming && <ConfirmDialog onClose={() => setConfirming(false)} onConfirm={() => void remove()} busy={deleting} />}</div>
 }
 
 function ModelPage() {
@@ -351,6 +386,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [pageSize, setPageSize] = useState<PageSize>(readPageSize)
   const location = useLocation()
 
   async function refresh() {
@@ -386,14 +422,26 @@ export default function App() {
     await refresh()
   }
 
+  async function onSave(record: DemoPrediction) {
+    await savePrediction(record)
+    await refresh()
+  }
+
+  function changePageSize(value: PageSize) {
+    setPageSize(value)
+    savePageSize(value)
+  }
+
   const pageName = location.pathname.startsWith('/prediction') ? 'Dự đoán ảnh'
+    : location.pathname.startsWith('/batch') ? 'Dự đoán hàng loạt'
     : location.pathname.startsWith('/history/') ? 'Chi tiết phân tích'
       : location.pathname.startsWith('/history') ? 'Lịch sử'
+        : location.pathname.startsWith('/analytics') ? 'Phân tích dữ liệu'
         : location.pathname.startsWith('/model') ? 'Thông tin mô hình'
           : location.pathname.startsWith('/settings') ? 'Cài đặt' : 'Tổng quan'
 
-  if (location.pathname === '/signin') return <AuthPage mode="signin" />
-  if (location.pathname === '/signup') return <AuthPage mode="signup" />
+  if (location.pathname === '/signin') return <AuthPage key="signin" mode="signin" />
+  if (location.pathname === '/signup') return <AuthPage key="signup" mode="signup" />
 
   return (
     <div className="app-shell">
@@ -415,10 +463,12 @@ export default function App() {
           <Routes>
             <Route path="/" element={<DashboardPage records={records} loading={loading} error={error} />} />
             <Route path="/prediction" element={<PredictionPage onRefresh={refresh} />} />
-            <Route path="/history" element={<HistoryPage records={records} loading={loading} error={error} />} />
-            <Route path="/history/:id" element={<DetailPage records={records} loading={loading} onDelete={onDelete} />} />
+            <Route path="/batch" element={<BatchPage onRefresh={refresh} />} />
+            <Route path="/history" element={<HistoryPage records={records} loading={loading} error={error} pageSize={pageSize} />} />
+            <Route path="/history/:id" element={<DetailPage records={records} loading={loading} onDelete={onDelete} onSave={onSave} />} />
+            <Route path="/analytics" element={<AnalyticsPage records={records} />} />
             <Route path="/model" element={<ModelPage />} />
-            <Route path="/settings" element={<SettingsPage count={records.length} onClear={onClear} />} />
+            <Route path="/settings" element={<SettingsPage count={records.length} onClear={onClear} pageSize={pageSize} onPageSizeChange={changePageSize} />} />
             <Route path="*" element={<div className="page-content"><section className="surface"><EmptyState icon={AlertCircle} title="Trang không tồn tại" description="Đường dẫn này không có trong ứng dụng demo." action={<Link className="button button-primary" to="/">Về tổng quan <ArrowRight size={17} /></Link>} /></section></div>} />
           </Routes>
         </main>
