@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff,
+  ArrowRight, CheckCircle2, Eye, EyeOff,
   LockKeyhole, Mail, Moon, Sun, UserRound,
 } from 'lucide-react'
 import type { Theme } from './theme'
@@ -60,7 +60,7 @@ export function AuthPage({ mode, theme, onThemeToggle, onAuthenticated }: { mode
       </section>
 
       <section className="auth-panel">
-        <div className="auth-panel-top"><Link to={isSignUp ? '/signin' : '/signup'} className="auth-back"><ArrowLeft size={17} /> {isSignUp ? 'Đăng nhập' : 'Tạo tài khoản'}</Link><div className="auth-panel-top-right"><button className="theme-toggle" aria-label={theme === 'light' ? 'Chuyển sang giao diện tối' : 'Chuyển sang giao diện sáng'} title={theme === 'light' ? 'Chế độ tối' : 'Chế độ sáng'} aria-pressed={theme === 'dark'} onClick={onThemeToggle}>{theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}</button><span className="auth-panel-caption">OCT VISION AI</span></div></div>
+        <div className="auth-panel-top"><div className="auth-panel-top-right"><button className="theme-toggle" aria-label={theme === 'light' ? 'Chuyển sang giao diện tối' : 'Chuyển sang giao diện sáng'} title={theme === 'light' ? 'Chế độ tối' : 'Chế độ sáng'} aria-pressed={theme === 'dark'} onClick={onThemeToggle}>{theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}</button><span className="auth-panel-caption">OCT VISION AI</span></div></div>
         <div className="auth-form-wrap">
           <div className="auth-form-icon">{isSignUp ? <UserRound size={27} /> : <LockKeyhole size={27} />}</div>
           <span className="section-kicker">{isSignUp ? 'TÀI KHOẢN MỚI' : 'CHÀO MỪNG TRỞ LẠI'}</span>
