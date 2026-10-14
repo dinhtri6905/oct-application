@@ -50,6 +50,12 @@ html[data-theme=dark] .metric-label,html[data-theme=dark] .settings-status-list 
 html[data-theme=dark] .recent-item,html[data-theme=dark] .class-info-item,html[data-theme=dark] .settings-status-list>div,html[data-theme=dark] .batch-queue,html[data-theme=dark] .batch-queue-list>div,html[data-theme=dark] .history-mobile-card,html[data-theme=dark] .batch-help,html[data-theme=dark] .table-footer,html[data-theme=dark] .result-primary,html[data-theme=dark] .detail-result-lead{border-color:#2a3e55}
 html[data-theme=dark] .recent-item:hover,html[data-theme=dark] .history-table tbody tr:hover{background:#1b3049}
 html[data-theme=dark] .recent-name strong,html[data-theme=dark] .history-mobile-card strong,html[data-theme=dark] .table-image-cell strong,html[data-theme=dark] .batch-queue-list strong{color:#e1edfb}
+html[data-theme=dark] .batch-finished,html[data-theme=dark] .batch-finished-row{border-color:#2a3e55}
+html[data-theme=dark] .batch-finished-heading strong,html[data-theme=dark] .batch-finished-meta strong{color:#e1edfb}
+html[data-theme=dark] .batch-finished-icon{background:#21453a;color:#85d6af}
+html[data-theme=dark] .batch-finished-icon-error{background:#4c2835;color:#ff9aa8}
+html[data-theme=dark] .batch-finished-class,html[data-theme=dark] .batch-queue-list .batch-done{color:#85d6af}
+html[data-theme=dark] .batch-finished-error,html[data-theme=dark] .batch-clear-button{color:#ff9aa8}
 html[data-theme=dark] .model-hero,html[data-theme=dark] .analytics-research-card{background:linear-gradient(130deg,#172b43,#14263b)}
 html[data-theme=dark] .auth-shell,html[data-theme=dark] .auth-panel{background:#0f1e31}
 html[data-theme=dark] .auth-form-wrap h2,html[data-theme=dark] .auth-field>span{color:#e9f3ff}
